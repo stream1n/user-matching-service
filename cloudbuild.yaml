@@ -1,4 +1,4 @@
-teps:
+steps:
 
   # build the container image
   - name: gcr.io/cloud-builders/docker
