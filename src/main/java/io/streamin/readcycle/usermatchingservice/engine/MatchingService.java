@@ -32,6 +32,21 @@ public class MatchingService {
     this.userRepository = userRepository;
   }
 
+  public void matchAccepted(UserMatch _match) {
+    _match.setAccepted(true);
+    userMatchRepository.save(_match).block();
+    libraryBookRepository.deleteById(_match.getBook1Ref()).block();
+    libraryBookRepository.deleteById(_match.getBook2Ref()).block();
+  }
+
+  public void matchRejected(UserMatch _match) {
+    userMatchRepository.delete(_match).block();
+  }
+
+  public void matchCancelled(UserMatch _match) {
+    userMatchRepository.delete(_match).block();
+  }
+
   public void newUserMatches(User _new, List<User> _existing) {
     _existing
       .stream()

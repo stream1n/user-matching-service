@@ -24,5 +24,6 @@ public class UserMatch {
   private String isbn;
   private String name;
   private String pictureURL;
+  private boolean accepted;
 
 }

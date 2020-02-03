@@ -5,7 +5,8 @@ import io.streamin.readcycle.usermatchingservice.firebase.libraryBook.LibraryBoo
 import io.streamin.readcycle.usermatchingservice.firebase.libraryBook.LibraryBookRepository;
 import io.streamin.readcycle.usermatchingservice.firebase.user.User;
 import io.streamin.readcycle.usermatchingservice.firebase.user.UserRepository;
-import io.streamin.readcycle.usermatchingservice.firebase.userPotentialMatch.UserPotentialMatchRepository;
+import io.streamin.readcycle.usermatchingservice.firebase.userMatch.UserMatch;
+import io.streamin.readcycle.usermatchingservice.firebase.userMatch.UserMatchRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,11 +22,13 @@ public class UserController {
   @Autowired
   private MatchingService matchingService;
   private final UserRepository userRepository;
+  private final UserMatchRepository userMatchRepository;
   private final LibraryBookRepository libraryBookRepository;
 
-  public UserController(UserRepository userRepository, LibraryBookRepository libraryBookRepository) {
+  public UserController(UserRepository userRepository, LibraryBookRepository libraryBookRepository, UserMatchRepository userMatchRepository) {
     this.userRepository = userRepository;
     this.libraryBookRepository = libraryBookRepository;
+    this.userMatchRepository = userMatchRepository;
   }
 
   @GetMapping("/match/newUser")
@@ -52,6 +55,24 @@ public class UserController {
   private void newBook(@RequestParam(name="book", required=true) String book) {
     LibraryBook _libraryBook = libraryBookRepository.findById(book).block();
     matchingService.newBookMatches(_libraryBook);
+  }
+
+  @GetMapping("/match/accepted")
+  private void accepted(@RequestParam(name="match", required=true) String match) {
+    UserMatch _match = userMatchRepository.findById(match).block();
+    matchingService.matchAccepted(_match);
+  }
+
+  @GetMapping("/match/rejected")
+  private void rejected(@RequestParam(name="match", required=true) String match) {
+    UserMatch _match = userMatchRepository.findById(match).block();
+    matchingService.matchRejected(_match);
+  }
+
+  @GetMapping("/match/cancelled")
+  private void cancelled(@RequestParam(name="match", required=true) String match) {
+    UserMatch _match = userMatchRepository.findById(match).block();
+    matchingService.matchCancelled(_match);
   }
 
 }
