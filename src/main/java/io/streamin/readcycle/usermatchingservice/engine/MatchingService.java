@@ -1,7 +1,10 @@
 package io.streamin.readcycle.usermatchingservice.engine;
 
+import io.streamin.readcycle.usermatchingservice.firebase.libraryBook.LibraryBook;
+import io.streamin.readcycle.usermatchingservice.firebase.libraryBook.LibraryBookRepository;
 import io.streamin.readcycle.usermatchingservice.firebase.user.User;
-import io.streamin.readcycle.usermatchingservice.firebase.user.UserRepository;
+import io.streamin.readcycle.usermatchingservice.firebase.userMatch.UserMatch;
+import io.streamin.readcycle.usermatchingservice.firebase.userMatch.UserMatchRepository;
 import io.streamin.readcycle.usermatchingservice.firebase.userPotentialMatch.UserPotentialMatch;
 import io.streamin.readcycle.usermatchingservice.firebase.userPotentialMatch.UserPotentialMatchRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -16,10 +19,14 @@ import java.util.stream.Stream;
 @Slf4j
 public class MatchingService {
 
-  private final UserPotentialMatchRepository _repository;
+  private final UserPotentialMatchRepository userPotentialMatchRepository;
+  private final LibraryBookRepository libraryBookRepository;
+  private final UserMatchRepository userMatchRepository;
 
-  public MatchingService(UserPotentialMatchRepository _repository) {
-    this._repository = _repository;
+  public MatchingService(UserPotentialMatchRepository userPotentialMatchRepository, LibraryBookRepository libraryBookRepository, UserMatchRepository userMatchRepository) {
+    this.userPotentialMatchRepository = userPotentialMatchRepository;
+    this.libraryBookRepository = libraryBookRepository;
+    this.userMatchRepository = userMatchRepository;
   }
 
   public void newUserMatches(User _new, List<User> _existing) {
@@ -30,10 +37,10 @@ public class MatchingService {
   }
 
   public void deletedUserMatches(User _user) {
-    List<UserPotentialMatch> _travel = _repository.findByUserThatWillTravel(_user.getId()).collectList().block();
-    List<UserPotentialMatch> _stay = _repository.findByUserThatWillStay(_user.getId()).collectList().block();
+    List<UserPotentialMatch> _travel = userPotentialMatchRepository.findByUserThatWillTravel(_user.getId()).collectList().block();
+    List<UserPotentialMatch> _stay = userPotentialMatchRepository.findByUserThatWillStay(_user.getId()).collectList().block();
     List<UserPotentialMatch> _delete = Stream.of(_travel, _stay).flatMap(x -> x.stream()).collect(Collectors.toList());
-    _repository.deleteAll(_delete).block();
+    userPotentialMatchRepository.deleteAll(_delete).block();
 
   }
 
@@ -43,18 +50,66 @@ public class MatchingService {
     newUserMatches(_updated, _existing);
   }
 
+  public void newBookMatches(LibraryBook _libraryBook) {
+
+    if( _libraryBook.isWanted()) {
+      userPotentialMatchRepository
+        .findByUserThatWillTravel(_libraryBook.getUser())
+        .collectList()
+        .block()
+        .stream()
+        .forEach(user -> checkBookMatch(user, user.getUserThatWillStay(), _libraryBook));
+    } else {
+      userPotentialMatchRepository
+        .findByUserThatWillStay(_libraryBook.getUser())
+        .collectList()
+        .block()
+        .stream()
+        .forEach(user -> checkBookMatch(user, user.getUserThatWillTravel(), _libraryBook));
+    }
+
+  }
+
+  private void checkBookMatch( UserPotentialMatch user, String userId, LibraryBook _libraryBook) {
+
+    libraryBookRepository
+      .findLibraryBookByUserAndNameAndWanted(userId, _libraryBook.getName(), !_libraryBook.isWanted())
+      .collectList()
+      .block()
+      .stream()
+      .forEach(match -> saveMatch(user.getUserThatWillStay(), user.getUserThatWillTravel(), match.getId(), _libraryBook.getId(), user.getDistance(), _libraryBook.getName(), _libraryBook.getIsbn(), _libraryBook.getPictureURL()));
+
+  }
+
+  private void saveMatch( String userThatWillStay, String userThatWillTravel, String book1Ref, String book2Ref, double distance, String name, String isbn, String pictureURL ) {
+
+
+    UserMatch match = new UserMatch();
+    match.setId(UUID.randomUUID().toString());
+    match.setDistance(distance);
+    match.setUserThatWillStay(userThatWillStay);
+    match.setUserThatWillTravel(userThatWillTravel);
+    match.setBook1Ref(book1Ref);
+    match.setBook2Ref(book2Ref);
+    match.setName(name);
+    match.setIsbn(isbn);
+    match.setPictureURL(pictureURL);
+    
+    userMatchRepository.save(match).block();
+  }
+
   private void checkMatch(User _new, User _existing) {
 
     double distance = calcDistance(_new.getLatitude(), _new.getLongitude(), _existing.getLatitude(), _existing.getLongitude());
 
     if( distance <= _existing.getMaxDistanceUserWantsToTravel() && distance <= _new.getMaxDistanceUserWantsOthersToTravelFrom() ) {
       UserPotentialMatch match = new UserPotentialMatch(UUID.randomUUID().toString(), _existing.getId(), _new.getId(), distance);
-      _repository.save(match).block();
+      userPotentialMatchRepository.save(match).block();
     }
 
     if( distance <= _new.getMaxDistanceUserWantsToTravel() && distance <= _existing.getMaxDistanceUserWantsOthersToTravelFrom() ) {
       UserPotentialMatch match = new UserPotentialMatch(UUID.randomUUID().toString(), _new.getId(), _existing.getId(), distance);
-      _repository.save(match).block();
+      userPotentialMatchRepository.save(match).block();
     }
 
   }
