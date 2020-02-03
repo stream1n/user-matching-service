@@ -3,6 +3,7 @@ package io.streamin.readcycle.usermatchingservice.engine;
 import io.streamin.readcycle.usermatchingservice.firebase.libraryBook.LibraryBook;
 import io.streamin.readcycle.usermatchingservice.firebase.libraryBook.LibraryBookRepository;
 import io.streamin.readcycle.usermatchingservice.firebase.user.User;
+import io.streamin.readcycle.usermatchingservice.firebase.user.UserRepository;
 import io.streamin.readcycle.usermatchingservice.firebase.userMatch.UserMatch;
 import io.streamin.readcycle.usermatchingservice.firebase.userMatch.UserMatchRepository;
 import io.streamin.readcycle.usermatchingservice.firebase.userPotentialMatch.UserPotentialMatch;
@@ -22,11 +23,13 @@ public class MatchingService {
   private final UserPotentialMatchRepository userPotentialMatchRepository;
   private final LibraryBookRepository libraryBookRepository;
   private final UserMatchRepository userMatchRepository;
+  private final UserRepository userRepository;
 
-  public MatchingService(UserPotentialMatchRepository userPotentialMatchRepository, LibraryBookRepository libraryBookRepository, UserMatchRepository userMatchRepository) {
+  public MatchingService(UserPotentialMatchRepository userPotentialMatchRepository, LibraryBookRepository libraryBookRepository, UserMatchRepository userMatchRepository, UserRepository userRepository) {
     this.userPotentialMatchRepository = userPotentialMatchRepository;
     this.libraryBookRepository = libraryBookRepository;
     this.userMatchRepository = userMatchRepository;
+    this.userRepository = userRepository;
   }
 
   public void newUserMatches(User _new, List<User> _existing) {
@@ -81,8 +84,9 @@ public class MatchingService {
 
   }
 
-  private void saveMatch( String userThatWillStay, String userThatWillTravel, String book1Ref, String book2Ref, double distance, String name, String isbn, String pictureURL ) {
-
+  private void saveMatch( String userThatWillStay, String userThatWillTravel, String book1Ref, String book2Ref, double distance, String name, String isbn, String pictureURL) {
+    User _userThatWillStay = userRepository.findById(userThatWillStay).block();
+    User _userThatWillTravel = userRepository.findById(userThatWillTravel).block();
 
     UserMatch match = new UserMatch();
     match.setId(UUID.randomUUID().toString());
@@ -94,7 +98,11 @@ public class MatchingService {
     match.setName(name);
     match.setIsbn(isbn);
     match.setPictureURL(pictureURL);
-    
+    match.setUserThatWillStayName(_userThatWillStay.getUserName());
+    match.setUserThatWillStayPhoto(_userThatWillStay.getUserPhoto());
+    match.setUserThatWillTravelName(_userThatWillTravel.getUserName());
+    match.setUserThatWillTravelPhoto(_userThatWillTravel.getUserPhoto());
+
     userMatchRepository.save(match).block();
   }
 

@@ -13,7 +13,11 @@ public class UserMatch {
   @DocumentId
   private String id;
   private String userThatWillTravel;
+  private String userThatWillTravelName;
+  private String userThatWillTravelPhoto;
   private String userThatWillStay;
+  private String userThatWillStayName;
+  private String userThatWillStayPhoto;
   private double distance;
   private String book1Ref;
   private String book2Ref;

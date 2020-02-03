@@ -8,6 +8,8 @@ import org.springframework.cloud.gcp.data.firestore.Document;
 public class User {
 
   private String id;
+  private String userName;
+  private String userPhoto;
   private String name;
   private String isoCountryCode;
   private String country;
